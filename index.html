@@ -579,16 +579,30 @@ button { cursor:pointer; background:none; border:none; color:inherit; font-famil
       </div>
     </div>
     <div class="flash" id="camFlash"></div>
-    <!-- No-camera fallback overlay (covers everything when camera denied) -->
-    <div id="noCamOverlay" style="display:none;position:absolute;inset:0;z-index:30;background:#111;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:44px 32px;text-align:center;">
-      <div style="font-size:48px;opacity:.45;">📷</div>
-      <div style="font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;color:#fff;line-height:1.2;">Camera access<br>not available</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;max-width:270px;">You can still get a verdict — just upload a photo of your bag from your camera roll or take one now.</div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:10px;background:white;color:#0E1A2B;padding:16px 32px;border-radius:999px;font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.4);cursor:pointer;margin-top:4px;width:100%;max-width:280px;">
-        Upload a Photo
+    <!-- No-camera fallback overlay -->
+    <div id="noCamOverlay" style="display:none;position:absolute;inset:0;z-index:30;background:#0E1A2B;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:44px 28px;text-align:center;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(248,249,249,.35);margin-bottom:14px;">How It Works</div>
+      <div style="font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:#F8F9F9;line-height:1.15;margin-bottom:10px;">Point. Shoot.<br><em style="font-style:italic;color:rgba(248,249,249,.6);">Get your verdict.</em></div>
+      <div style="font-size:13px;color:rgba(248,249,249,.45);line-height:1.7;max-width:270px;margin-bottom:32px;">Take or upload a photo of your bag and our AI cross-references it against your venue's official policy in seconds.</div>
+      <div style="display:flex;flex-direction:column;gap:16px;width:100%;margin-bottom:32px;">
+        <div style="display:flex;align-items:flex-start;gap:14px;text-align:left;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(248,249,249,.08);display:grid;place-items:center;font-size:16px;flex-shrink:0;">🔍</div>
+          <div><div style="font-size:13px;font-weight:600;color:#F8F9F9;margin-bottom:3px;">AI identifies your bag</div><div style="font-size:12px;color:rgba(248,249,249,.4);line-height:1.5;">Type, structure, and estimated dimensions — all from your photo.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;text-align:left;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(248,249,249,.08);display:grid;place-items:center;font-size:16px;flex-shrink:0;">📋</div>
+          <div><div style="font-size:13px;font-weight:600;color:#F8F9F9;margin-bottom:3px;">Checks the official policy</div><div style="font-size:12px;color:rgba(248,249,249,.4);line-height:1.5;">Cross-referenced against verified data from 346 venues.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;text-align:left;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(248,249,249,.08);display:grid;place-items:center;font-size:16px;flex-shrink:0;">✅</div>
+          <div><div style="font-size:13px;font-weight:600;color:#F8F9F9;margin-bottom:3px;">Pass, warn, or fail</div><div style="font-size:12px;color:rgba(248,249,249,.4);line-height:1.5;">With the exact policy rules cited — so you know why.</div></div>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;background:#F8F9F9;color:#0E1A2B;padding:16px;border-radius:20px;font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.35);cursor:pointer;width:100%;">
+        Upload a Photo to Analyze
         <input type="file" accept="image/*" id="photoUploadInput" style="display:none"/>
       </label>
-      <button id="noCamPolicyBtn" style="background:none;border:none;font-size:12px;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;font-family:-apple-system,sans-serif;cursor:pointer;padding:4px 0;margin-top:4px;">View Policy Instead</button>
+      <button id="noCamPolicyBtn" style="background:none;border:none;font-size:12px;color:rgba(248,249,249,.3);letter-spacing:.08em;text-transform:uppercase;font-family:-apple-system,sans-serif;cursor:pointer;padding:16px 0 0;">View Policy Instead</button>
     </div>
   </div>
 
@@ -1284,9 +1298,11 @@ function showPolicy() {
   $('policyVenueName').textContent = v.n;
   $('policyVenueAddr').textContent  = v.addr || v.loc || '';
 
-  const makeLink = (url, label) => url
-    ? `<a href="${url}" target="_blank" rel="noopener" class="pg-link">${label} ↗</a>`
-    : `<span style="color:var(--ink-3)">${label}</span>`;
+  const makeLink = (url, label, searchQuery) => {
+    if (url) return `<a href="${url}" target="_blank" rel="noopener" class="pg-link">${label} ↗</a>`;
+    if (searchQuery) return `<a href="https://www.google.com/search?q=${encodeURIComponent(searchQuery)}" target="_blank" rel="noopener" class="pg-link">${label} ↗</a>`;
+    return `<span style="color:var(--ink-3)">Not available</span>`;
+  };
 
   const allows = v.allows || ['Clear bag ≤ 12"×6"×12"','Small clutch ≤ 4.5"×6.5"'];
   const denies = v.denies || ['Backpacks','Large purses'];
@@ -1300,22 +1316,22 @@ function showPolicy() {
         ${allows.map(a=>`<div class="policy-pill allow">✓ ${a}</div>`).join('')}
         ${denies.map(d=>`<div class="policy-pill deny">✗ ${d}</div>`).join('')}
       </div>
-      ${makeLink(v.bag,'Official bag policy page')}
+      ${makeLink(v.bag, 'Official bag policy page', `${v.n} bag policy`)}
     </div>
     <div class="pg-card">
       <div class="pg-icon">🚗</div>
       <div class="pg-title">Parking</div>
-      <div class="pg-value">${makeLink(v.park,'Getting here')}</div>
+      <div class="pg-value">${makeLink(v.park, 'Getting here', `${v.n} parking directions`)}</div>
     </div>
     <div class="pg-card">
       <div class="pg-icon">🍔</div>
       <div class="pg-title">Food & Drink</div>
-      <div class="pg-value">${makeLink(v.conc,'Concessions')}</div>
+      <div class="pg-value">${makeLink(v.conc, 'Concessions', `${v.n} food drink concessions`)}</div>
     </div>
     <div class="pg-card" style="grid-column:1/-1">
       <div class="pg-icon">🌐</div>
       <div class="pg-title">Official Website</div>
-      <div class="pg-value">${makeLink(v.web, v.n)}</div>
+      <div class="pg-value">${makeLink(v.web, v.n, `${v.n} official website`)}</div>
     </div>
   `;
   goTo('s-policy');
