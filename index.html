@@ -180,13 +180,39 @@ transition:all .18s;
 
 /* No camera fallback */
 .no-cam-state{
-position:absolute;inset:0;background:var(–bg-2);
-display:flex;flex-direction:column;align-items:center;justify-content:center;
-gap:12px;padding:40px;text-align:center;
+position:absolute;inset:0;z-index:20;background:#111;
+display:none;flex-direction:column;align-items:center;justify-content:center;
+gap:16px;padding:44px 32px;text-align:center;
 }
-.no-cam-icon{font-size:48px;opacity:.3;}
-.no-cam-title{font-family:var(–display);font-size:22px;color:var(–ink);}
-.no-cam-sub{font-size:13px;color:var(–ink-3);line-height:1.6;max-width:260px;}
+.no-cam-state.visible{display:flex;}
+.no-cam-icon{font-size:52px;opacity:.5;}
+.no-cam-title{font-family:var(–display);font-size:24px;color:#fff;font-weight:700;}
+.no-cam-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;max-width:270px;}
+.upload-btn{
+display:flex;align-items:center;gap:10px;
+background:white;color:#0E1A2B;padding:15px 28px;border-radius:999px;
+font-size:14px;font-weight:600;font-family:var(–body);letter-spacing:.02em;
+box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .15s,box-shadow .15s;
+cursor:pointer;
+}
+.upload-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.upload-btn:active{transform:scale(.97);}
+.upload-btn-icon{font-size:18px;}
+.no-cam-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:220px;}
+.no-cam-divider::before,.no-cam-divider::after{content:’’;flex:1;height:1px;background:rgba(255,255,255,.15);}
+.no-cam-divider-txt{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;}
+.retry-btn{
+background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:999px;
+padding:11px 24px;font-size:13px;color:rgba(255,255,255,.55);
+letter-spacing:.04em;transition:all .18s;font-family:var(–body);
+}
+.retry-btn:hover{border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.85);}
+.pol-fallback-btn{
+background:transparent;border:none;
+font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.06em;text-transform:uppercase;
+font-family:var(–body);padding:4px 0;transition:color .18s;
+}
+.pol-fallback-btn:hover{color:rgba(255,255,255,.6);}
 
 .flash{position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:50;}
 .flash.go{animation:flashPop .3s ease-out forwards;}
@@ -404,11 +430,18 @@ z-index:400;pointer-events:none;box-shadow:0 8px 24px rgba(14,26,43,.25);
   <div id="s-camera" class="screen">
     <video id="camVideo" class="cam-video" autoplay playsinline muted></video>
     <canvas id="snapCanvas" style="display:none"></canvas>
-    <div id="noCamState" class="no-cam-state" style="display:none">
+    <div id="noCamState" class="no-cam-state">
       <div class="no-cam-icon">📷</div>
       <div class="no-cam-title">Camera access needed</div>
-      <div class="no-cam-sub">Allow camera access in your browser to scan your bag. Or use "View Policy Only" to check the rules manually.</div>
-      <button class="primary-btn" style="margin-top:16px;width:auto;padding:13px 28px" onclick="startCamera()">Try Again</button>
+      <div class="no-cam-sub">Allow camera access to scan live, or upload a photo of your bag from your camera roll.</div>
+      <label class="upload-btn">
+        <span class="upload-btn-icon">🖼️</span>
+        Choose a Photo
+        <input type="file" accept="image/*" id="photoUploadInput" style="display:none" capture="environment"/>
+      </label>
+      <div class="no-cam-divider"><span class="no-cam-divider-txt">or</span></div>
+      <button class="retry-btn" onclick="startCamera()">Allow Camera & Try Again</button>
+      <button class="pol-fallback-btn" id="noCamPolicyBtn">View Policy Instead</button>
     </div>
     <div class="scan-frame">
       <div class="sfc tl"></div><div class="sfc tr"></div>
@@ -573,7 +606,8 @@ function setVenue(name){
 
 // ─── CAMERA ─────────────────────────────────────────────────────────
 async function startCamera(){
-  $('noCamState').style.display='none';
+  const noCam=$('noCamState');
+  noCam.classList.remove('visible');
   const video=$('camVideo');
   try {
     if(videoStream) videoStream.getTracks().forEach(t=>t.stop());
@@ -586,10 +620,39 @@ async function startCamera(){
     $('scanLine').classList.add('go');
   } catch(err){
     console.warn('Camera error:', err);
-    $('noCamState').style.display='flex';
+    noCam.classList.add('visible');
     $('scanLine').classList.remove('go');
   }
 }
+
+// Photo upload fallback
+$('photoUploadInput').addEventListener('change', async function(){
+  const file=this.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    capturedImageB64=e.target.result.split(',')[1];
+    // Show thumbnail
+    const thumbImg=$('thumbImg');
+    thumbImg.src=e.target.result;
+    thumbImg.style.display='block';
+    stopCamera();
+    goTo('s-analyzing');
+    $('step3sub').textContent=`${currentVenue.n} policy`;
+    $('analyzeSub').textContent=`Checking against ${currentVenue.n}…`;
+    animateSteps();
+    try {
+      const result=await analyzeWithClaude(capturedImageB64,currentVenue);
+      showResult(result);
+    } catch(err){
+      console.error('Analysis failed:',err);
+      toast('Analysis failed — check your connection and try again');
+      goTo('s-camera');
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+$('noCamPolicyBtn').addEventListener('click',()=>{ stopCamera(); showPolicyScreen(); });
 
 function stopCamera(){
   if(videoStream){ videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
